@@ -1,0 +1,28 @@
+{
+  "note": "20 个测试字基准（对应规格书第 10 节）。conn = 连通域（笔画块）数量，已按渲染着色块逐一人工核对；minStrokeUnit = hei-400 在本地单位（1000 em）下的最细笔画宽度（沿轮廓法线的局部宽度），用于回归对比；minStrokeMm 见 sizeMm。",
+  "font": { "id": "hei", "weight": 400, "label": "黑体 Noto Sans SC Regular" },
+  "sizeMm": 400,
+  "toleranceMm": 0.5,
+  "chars": [
+    { "char": "一", "conn": 1, "minStrokeUnit": 82.3, "note": "单一横画：最细笔画 = 墨迹高度，可用卡尺直接复核" },
+    { "char": "十", "conn": 1, "minStrokeUnit": 78.3, "note": "横竖相交为一个连通域" },
+    { "char": "赢", "conn": 6, "minStrokeUnit": 46.2, "note": "亡/口/月/贝/凡等多个部件分离" },
+    { "char": "疆", "conn": 7, "minStrokeUnit": 55.3, "note": "弓+畺（土+双田+横）多部件分离，含内孔" },
+    { "char": "口", "conn": 1, "minStrokeUnit": 80.4, "note": "外圈连通，内孔不计入块数" },
+    { "char": "日", "conn": 1, "minStrokeUnit": 80.4, "note": "两内孔，仍为 1 块" },
+    { "char": "田", "conn": 1, "minStrokeUnit": 77.3, "note": "十字与外框相连，4 个内孔" },
+    { "char": "回", "conn": 2, "minStrokeUnit": 80.3, "note": "外框与内框互不相连 = 2 块" },
+    { "char": "国", "conn": 3, "minStrokeUnit": 54.6, "note": "外框囗 + 内部「王」+「丶」共 3 块" },
+    { "char": "目", "conn": 1, "minStrokeUnit": 77.4, "note": "三内孔，1 块" },
+    { "char": "川", "conn": 3, "minStrokeUnit": 76.4, "note": "三竖互不相连 = 3 块" },
+    { "char": "三", "conn": 3, "minStrokeUnit": 76.3, "note": "三横互不相连 = 3 块" },
+    { "char": "王", "conn": 1, "minStrokeUnit": 75.2, "note": "三横一竖相连 = 1 块" },
+    { "char": "月", "conn": 1, "minStrokeUnit": 75.1, "note": "含两内孔" },
+    { "char": "中", "conn": 1, "minStrokeUnit": 78.0, "note": "口与竖相连 = 1 块" },
+    { "char": "人", "conn": 1, "minStrokeUnit": 74.6, "note": "两笔画相接（起笔处相连）" },
+    { "char": "大", "conn": 1, "minStrokeUnit": 78.7, "note": "横撇捺相接 = 1 块" },
+    { "char": "小", "conn": 3, "minStrokeUnit": 74.1, "note": "竖钩与左右点分离 = 3 块" },
+    { "char": "山", "conn": 1, "minStrokeUnit": 77.5, "note": "三竖由底横相连 = 1 块" },
+    { "char": "上", "conn": 1, "minStrokeUnit": 75.3, "note": "竖横相连 = 1 块" }
+  ]
+}

@@ -1,0 +1,26 @@
+招牌字排版与材料清单（app-029）—— 内置字体授权说明
+================================================================
+
+本项目 public/fonts/ 下的字体均为**可商用开源字体**，遵循 SIL Open Font License 1.1（OFL-1.1）。
+完整许可证文本见各字体上游仓库随附的 OFL.txt，或 https://scripts.sil.org/OFL 。
+
+| 文件 | 字体 | 版权 / 来源 | 授权 |
+| --- | --- | --- | --- |
+| hei-400.otf | Noto Sans SC Regular | © Google / notofonts/noto-cjk | SIL OFL 1.1 |
+| hei-700.otf | Noto Sans SC Bold | © Google / notofonts/noto-cjk | SIL OFL 1.1 |
+| song-400.otf | Noto Serif SC Regular | © Google / notofonts/noto-cjk | SIL OFL 1.1 |
+| song-700.otf | Noto Serif SC Bold | © Google / notofonts/noto-cjk | SIL OFL 1.1 |
+| kai-400.ttf | Ma Shan Zheng（马善政毛笔楷书） | © Google Fonts / mashanzheng | SIL OFL 1.1 |
+| round-400.ttf | ZCOOL QingKe HuangYou（站酷庆科黄油体） | © ZCOOL / zcoolqingkehuangyou | SIL OFL 1.1 |
+| art-400.ttf | ZCOOL KuaiLe（站酷快乐体） | © ZCOOL / zcoolkuaile | SIL OFL 1.1 |
+
+修改说明：上述字体均已做**子集化**处理（保留 GB2312 一级汉字 3755 字 + 常用标点 + ASCII），
+并移除了 hinting 与部分布局表，以减小体积；字形轮廓本身未做任何改动。
+OFL-1.1 允许修改与再分发（含嵌入、打包、子集化），修改后的字体不以原作者保留字体名（Reserved Font Name）声明；
+本项目内使用的名称（黑体/宋体/楷体/圆体/艺术体）仅为应用内显示用途标签。
+
+注意事项：
+1. 字体随应用一同打包，运行期只读取同源静态文件（public/fonts），不请求任何外网地址，断网可用。
+2. 若需替换为其它字体，请把 TTF/OTF 放入 public/fonts/ 并在 src/data/fonts.json 中登记，
+   同时确认该字体为可商用授权（本项目不内置任何不可商用的系统字体）。
+3. 「本地字库」页支持临时上传用户自己的字体（仅当前浏览器会话有效），授权请自行确认。

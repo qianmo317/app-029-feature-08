@@ -1,0 +1,56 @@
+{
+  "charsetNote": "所有字体均已本地打包并做子集化：GB2312 一级汉字 3755 字 + 常用标点 + ASCII（合计约 4500 字）。超出字集的字符会明确提示「该字符不在当前字体中」，不会静默退化。",
+  "fonts": [
+    {
+      "id": "hei",
+      "label": "黑体",
+      "family": "Noto Sans SC",
+      "feature": "无衬线、笔画均匀，门头招牌最常用",
+      "weights": [
+        { "weight": 400, "file": "fonts/hei-400.otf", "fileSizeKb": 830 },
+        { "weight": 700, "file": "fonts/hei-700.otf", "fileSizeKb": 827 }
+      ],
+      "license": "SIL Open Font License 1.1",
+      "source": "Noto Sans SC（notofonts/noto-cjk）"
+    },
+    {
+      "id": "song",
+      "label": "宋体",
+      "family": "Noto Serif SC",
+      "feature": "衬线、横细竖粗，传统稳重，细笔画需注意工艺下限",
+      "weights": [
+        { "weight": 400, "file": "fonts/song-400.otf", "fileSizeKb": 1187 },
+        { "weight": 700, "file": "fonts/song-700.otf", "fileSizeKb": 1190 }
+      ],
+      "license": "SIL Open Font License 1.1",
+      "source": "Noto Serif SC（notofonts/noto-cjk）"
+    },
+    {
+      "id": "kai",
+      "label": "楷体",
+      "family": "Ma Shan Zheng",
+      "feature": "毛笔楷书，笔画起收有锋，适合文化类门头",
+      "weights": [{ "weight": 400, "file": "fonts/kai-400.ttf", "fileSizeKb": 2980 }],
+      "license": "SIL Open Font License 1.1",
+      "source": "Ma Shan Zheng（google/fonts）"
+    },
+    {
+      "id": "round",
+      "label": "圆体",
+      "family": "ZCOOL QingKe HuangYou",
+      "feature": "圆头笔画、字面饱满，亲和力强",
+      "weights": [{ "weight": 400, "file": "fonts/round-400.ttf", "fileSizeKb": 1982 }],
+      "license": "SIL Open Font License 1.1",
+      "source": "ZCOOL QingKe HuangYou（google/fonts）"
+    },
+    {
+      "id": "art",
+      "label": "艺术体",
+      "family": "ZCOOL KuaiLe",
+      "feature": "手写感艺术体，适合餐饮/儿童业态",
+      "weights": [{ "weight": 400, "file": "fonts/art-400.ttf", "fileSizeKb": 741 }],
+      "license": "SIL Open Font License 1.1",
+      "source": "ZCOOL KuaiLe（google/fonts）"
+    }
+  ]
+}

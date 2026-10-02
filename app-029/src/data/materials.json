@@ -1,0 +1,195 @@
+{
+  "version": "2026.09",
+  "note": "材料与工艺参数库：单价为「分」，长度 mm。所有参数可在「材质与工艺预设」页调整并本地保存。",
+  "process": {
+    "strokeLimitMm": 8,
+    "defaultTrackRatio": 0.1,
+    "defaultMarginRatio": 0.04,
+    "defaultLineGapRatio": 0.18,
+    "panelFrameMm": 60,
+    "minTrackMm": -20,
+    "maxTrackMm": 300,
+    "warnTrackRatioLow": 0.04,
+    "warnTrackRatioHigh": 0.35
+  },
+  "acrylicSheets": [
+    {
+      "id": "acr-1220x2440x3",
+      "spec": "亚克力板 1220×2440×3mm（透明/乳白）",
+      "wMm": 1220,
+      "hMm": 2440,
+      "thicknessMm": 3,
+      "priceCents": 28000,
+      "kerfMm": 3
+    },
+    {
+      "id": "acr-1220x2440x5",
+      "spec": "亚克力板 1220×2440×5mm（乳白透光）",
+      "wMm": 1220,
+      "hMm": 2440,
+      "thicknessMm": 5,
+      "priceCents": 42000,
+      "kerfMm": 3
+    },
+    {
+      "id": "acr-1830x2440x5",
+      "spec": "亚克力板 1830×2440×5mm（加宽板）",
+      "wMm": 1830,
+      "hMm": 2440,
+      "thicknessMm": 5,
+      "priceCents": 56000,
+      "kerfMm": 3
+    }
+  ],
+  "ledModules": [
+    {
+      "id": "led-12v-072-60",
+      "spec": "LED 模组 12V 0.72W 60lm 单灯（3030）",
+      "spacingMm": 150,
+      "powerW": 0.72,
+      "lumen": 60,
+      "priceCents": 85,
+      "voltageV": 12
+    },
+    {
+      "id": "led-12v-144-120",
+      "spec": "LED 模组 12V 1.44W 120lm 双灯（2835）",
+      "spacingMm": 120,
+      "powerW": 1.44,
+      "lumen": 120,
+      "priceCents": 145,
+      "voltageV": 12
+    },
+    {
+      "id": "led-24v-096-100",
+      "spec": "LED 模组 24V 0.96W 100lm 单灯（防水）",
+      "spacingMm": 130,
+      "powerW": 0.96,
+      "lumen": 100,
+      "priceCents": 118,
+      "voltageV": 24
+    }
+  ],
+  "psu": {
+    "spec": "防水开关电源 IP67（12V/24V）",
+    "efficiency": 0.85,
+    "safetyFactor": 1.2,
+    "tiers": [60, 100, 150, 200, 300, 400],
+    "pricePerWattCents": 180,
+    "parallelNote": "超出常用档位（>400W）：需多电源并联/分区供电，建议按字分区，每区单独配电源"
+  },
+  "consumables": [
+    {
+      "id": "glue",
+      "spec": "亚克力专用结构胶 300ml",
+      "unit": "支",
+      "unitPriceCents": 3800,
+      "rule": { "type": "perStrokeBlock", "value": 0.035, "minQty": 1 }
+    },
+    {
+      "id": "screw",
+      "spec": "不锈钢挂件/自攻螺丝（每字 4 套）",
+      "unit": "套",
+      "unitPriceCents": 60,
+      "rule": { "type": "perChar", "value": 4, "minQty": 0 }
+    },
+    {
+      "id": "wire",
+      "spec": "电源线 RVV 2×1.0mm²（按布点长度 0.35m/m）",
+      "unit": "米",
+      "unitPriceCents": 320,
+      "rule": { "type": "perMeterPerimeter", "value": 0.35, "minQty": 0 }
+    },
+    {
+      "id": "sealant",
+      "spec": "中性硅酮密封胶（防水封边）",
+      "unit": "支",
+      "unitPriceCents": 2600,
+      "rule": { "type": "perMeterPerimeter", "value": 0.05, "minQty": 1 }
+    },
+    {
+      "id": "trim",
+      "spec": "不锈钢包边条 1.0mm（描边/镂空字用）",
+      "unit": "米",
+      "unitPriceCents": 1800,
+      "rule": { "type": "perOutlinePerimeter", "value": 1.05, "minQty": 0 }
+    }
+  ],
+  "labor": [
+    {
+      "id": "cut",
+      "spec": "面板切割/雕刻（含异形修边）",
+      "unit": "㎡",
+      "unitPriceCents": 18000,
+      "rule": { "type": "perPieceAreaM2", "value": 1, "minQty": 0 }
+    },
+    {
+      "id": "ledmount",
+      "spec": "LED 布点安装（打孔/贴片/走线）",
+      "unit": "米",
+      "unitPriceCents": 1500,
+      "rule": { "type": "perMeterPerimeter", "value": 1, "minQty": 0 }
+    },
+    {
+      "id": "assemble",
+      "spec": "发光字装配（面板+扣边+接线）",
+      "unit": "字",
+      "unitPriceCents": 3500,
+      "rule": { "type": "perChar", "value": 1, "minQty": 0 }
+    },
+    {
+      "id": "psuinstall",
+      "spec": "电源装配与通电老化测试",
+      "unit": "台",
+      "unitPriceCents": 4000,
+      "rule": { "type": "perPsu", "value": 1, "minQty": 0 }
+    }
+  ],
+  "panelMaterials": [
+    {
+      "id": "acrylic_led",
+      "name": "亚克力发光字",
+      "desc": "乳白亚克力面板 + 内藏 LED 模组，夜间发光",
+      "useLed": true,
+      "areaPriceCentsPerM2": 32000,
+      "perimeterPriceCentsPerM": 0,
+      "charLaborCents": 3500
+    },
+    {
+      "id": "titanium",
+      "name": "钛金字",
+      "desc": "钛金不锈钢板激光切割 + 折边焊接，金属质感不发光",
+      "useLed": false,
+      "areaPriceCentsPerM2": 95000,
+      "perimeterPriceCentsPerM": 4500,
+      "charLaborCents": 5500
+    },
+    {
+      "id": "pvc",
+      "name": "PVC 字",
+      "desc": "PVC 发泡板雕刻字，经济型室内首选",
+      "useLed": false,
+      "areaPriceCentsPerM2": 18000,
+      "perimeterPriceCentsPerM": 0,
+      "charLaborCents": 1800
+    },
+    {
+      "id": "film",
+      "name": "贴膜字",
+      "desc": "户外贴膜刻字，成本最低，适合临时/短期使用",
+      "useLed": false,
+      "areaPriceCentsPerM2": 4500,
+      "perimeterPriceCentsPerM": 0,
+      "charLaborCents": 1200
+    },
+    {
+      "id": "steel_trim",
+      "name": "不锈钢边条",
+      "desc": "亚克力字 + 不锈钢包边条，发光均匀边线利落",
+      "useLed": true,
+      "areaPriceCentsPerM2": 26000,
+      "perimeterPriceCentsPerM": 6500,
+      "charLaborCents": 4000
+    }
+  ]
+}
