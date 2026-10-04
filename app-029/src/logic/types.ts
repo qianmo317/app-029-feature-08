@@ -6,6 +6,10 @@
 export type Mounting = 'wall' | 'board' | 'freestanding'
 export type Align = 'left' | 'center' | 'right' | 'justify'
 export type CharMode = 'solid' | 'outline'
+/** 单侧留边方式：按字号比例，或直接给固定毫米数 */
+export type MarginMode = 'ratio' | 'fixed'
+/** 先保哪一侧留边：宽度不够时先压另一侧 */
+export type PrioritySide = 'left' | 'right'
 
 /** 门头面板参数；frameMm = 铝塑板边框宽度，有效安装区 = 面板尺寸 - 2×边框 */
 export interface SignPanel {
@@ -27,6 +31,24 @@ export interface CharItem {
   seq?: number
 }
 
+/** 单侧留边：可按字号比例，也可直接给固定毫米数；minMm 为该侧允许压到的下限 */
+export interface MarginSide {
+  mode: MarginMode
+  /** mode='ratio' 时：留边 = ratio × 字号 */
+  ratio: number
+  /** mode='fixed' 时：固定留边 mm（不随字号缩放） */
+  fixedMm: number
+  /** 让位时该侧允许被压到的最小留边 mm */
+  minMm: number
+}
+
+/** 左右分开的留边设置；prioritySide 指定宽度不够时先保（不让）的一侧 */
+export interface MarginSettings {
+  left: MarginSide
+  right: MarginSide
+  prioritySide: PrioritySide
+}
+
 export interface LayoutSettings {
   align: Align
   baseSizeMm: number
@@ -35,8 +57,13 @@ export interface LayoutSettings {
   strokeLimitMm: number
   /** 默认字距 = trackRatio × 字号 */
   trackRatio: number
-  /** 自动字号时预留的左右留边比例 */
-  marginRatio: number
+  /**
+   * 自动字号留边（左右分开，各支持字号比例或固定毫米）。
+   * 注：旧项目只有 marginRatio（按安装区宽的比例），打开时迁移成左右同宽的字号比例。
+   */
+  margins: MarginSettings
+  /** @deprecated 旧字段：迁移自旧项目「两边同宽比例」，新逻辑不再读取 */
+  marginRatio?: number
   /** 行距（行与行之间墨迹间隙）= lineGapRatio × 字号 */
   lineGapRatio: number
 }

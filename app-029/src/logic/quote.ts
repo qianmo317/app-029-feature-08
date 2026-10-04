@@ -61,7 +61,11 @@ export function buildQuoteDoc(project: Project, layout: LayoutResult, bom: BomRe
       project.layout.panel.mounting
     )}）`,
     fontText: `${fontLabel}　字重 ${project.layout.settings.weight}　字号 ${layout.sizeMm}mm（${alignLabel(project.layout.settings.align)}）`,
-    layoutText: `占宽 ${layout.occupiedW}mm × 占高 ${layout.occupiedH}mm；左右留边 ${layout.margins.left}/${layout.margins.right}mm；视觉间距极差 ${layout.gapSpread}mm`,
+    layoutText:
+      `占宽 ${layout.occupiedW}mm × 占高 ${layout.occupiedH}mm；` +
+      `左留边 设定${layout.marginFit.nominalLeft}/实际${layout.marginFit.reservedLeft}mm，` +
+      `右留边 设定${layout.marginFit.nominalRight}/实际${layout.marginFit.reservedRight}mm；` +
+      `${layout.marginFit.note}；视觉间距极差 ${layout.gapSpread}mm`,
     rows,
     total: yuan(bom.totalCents),
     notes: [

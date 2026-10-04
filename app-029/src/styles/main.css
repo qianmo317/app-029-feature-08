@@ -328,6 +328,22 @@ th.num {
   font-family: var(--mono);
 }
 
+/* 左右分开的留边设置表 */
+.margin-table {
+  font-size: 12px;
+}
+.margin-table input,
+.margin-table select {
+  width: 76px;
+  padding: 2px 4px;
+}
+.margin-table tbody tr.prio {
+  background: #f1f8f2;
+}
+.margin-table tbody tr.prio td {
+  border-bottom-color: #bfe3c6;
+}
+
 tfoot td {
   font-weight: 700;
   border-top: 2px solid var(--line);

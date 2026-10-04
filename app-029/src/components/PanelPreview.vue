@@ -207,43 +207,45 @@ const markerR = computed(() => Math.max(panel.value.hMm, panel.value.wMm) * 0.01
         :opacity="0.9"
       />
 
-      <!-- 留边指示 -->
+      <!-- 留边指示：界线 = 左右留边后的内容区边界（随分侧留边刷新） -->
       <g v-if="showMargins && layout.chars.length">
         <line
-          :x1="layout.inner.x"
+          :x1="layout.contentBox.x"
           :y1="-dimOffset * 0.5"
-          :x2="layout.inner.x"
+          :x2="layout.contentBox.x"
           :y2="panel.hMm + dimOffset * 0.5"
-          stroke="#1f6feb"
-          :stroke-width="labelSize * 0.07"
+          :stroke="layout.marginFit.atLimitLeft ? '#c62828' : '#1f6feb'"
+          :stroke-width="labelSize * (layout.marginFit.atLimitLeft ? 0.12 : 0.07)"
           stroke-dasharray="6 4"
         />
         <line
-          :x1="layout.inner.x + layout.inner.w"
+          :x1="layout.contentBox.x + layout.contentBox.w"
           :y1="-dimOffset * 0.5"
-          :x2="layout.inner.x + layout.inner.w"
+          :x2="layout.contentBox.x + layout.contentBox.w"
           :y2="panel.hMm + dimOffset * 0.5"
-          stroke="#1f6feb"
-          :stroke-width="labelSize * 0.07"
+          :stroke="layout.marginFit.atLimitRight ? '#c62828' : '#1f6feb'"
+          :stroke-width="labelSize * (layout.marginFit.atLimitRight ? 0.12 : 0.07)"
           stroke-dasharray="6 4"
         />
         <text
-          :x="layout.inkLeft / 2 + layout.inner.x / 2"
+          :x="(layout.inner.x + layout.contentBox.x) / 2"
           :y="-dimOffset * 0.15"
           class="svg-label"
           text-anchor="middle"
+          :fill="layout.marginFit.atLimitLeft ? '#c62828' : '#1f6feb'"
           :style="{ fontSize: labelSize + 'px' }"
         >
-          留边 {{ layout.margins.left }}mm
+          左留边 {{ layout.margins.left }}mm<template v-if="layout.marginFit.atLimitLeft">（已到下限）</template>
         </text>
         <text
-          :x="(layout.inkRight + layout.inner.x + layout.inner.w) / 2"
+          :x="(layout.contentBox.x + layout.contentBox.w + layout.inner.x + layout.inner.w) / 2"
           :y="-dimOffset * 0.15"
           class="svg-label"
           text-anchor="middle"
+          :fill="layout.marginFit.atLimitRight ? '#c62828' : '#1f6feb'"
           :style="{ fontSize: labelSize + 'px' }"
         >
-          留边 {{ layout.margins.right }}mm
+          右留边 {{ layout.margins.right }}mm<template v-if="layout.marginFit.atLimitRight">（已到下限）</template>
         </text>
       </g>
 

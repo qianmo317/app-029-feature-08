@@ -3,11 +3,11 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import PanelPreview from '../components/PanelPreview.vue'
 import { findFont, fontState, listFonts } from '../logic/fontLoader'
-import { round1, textToItems } from '../logic/layout'
+import { marginModeLabel, round1, textToItems } from '../logic/layout'
 import { getProject } from '../logic/store'
 import { loadPrefs, savePrefs } from '../logic/store'
 import { useSession } from '../logic/useSession'
-import type { CharMode, Project } from '../logic/types'
+import type { CharMode, MarginSide, PrioritySide, Project } from '../logic/types'
 
 const route = useRoute()
 const id = String(route.params.id)
@@ -113,6 +113,29 @@ function resetAllTracks(): void {
   }
 }
 
+/** 逐字微调输入框的显示值：未手动改过则显示跟随当前字号/界线的生效字距 */
+function activeTrackValue(): number {
+  const p = project.value
+  if (!p || active.value === null) return 0
+  const it = p.layout.items[active.value]
+  if (!it) return 0
+  if (it.trackTouched) return it.trackMm
+  return round1(p.layout.settings.trackRatio * (layout.value?.sizeMm ?? p.layout.settings.baseSizeMm))
+}
+
+function setActiveTrack(v: number): void {
+  const p = project.value
+  if (!p || active.value === null) return
+  const it = p.layout.items[active.value]
+  if (!it) return
+  it.trackMm = round1(Number.isFinite(v) ? v : 0)
+  it.trackTouched = true
+}
+
+function nudgeActiveTrack(delta: number): void {
+  setActiveTrack(activeTrackValue() + delta)
+}
+
 function applySuggested(): void {
   const p = project.value
   const l = layout.value
@@ -124,6 +147,55 @@ function applySuggested(): void {
 function setAutoFit(v: boolean): void {
   session.autoFit.value = v
 }
+
+// ---------- 左右分开的留边设置 ----------
+const marginCfg = computed(() => project.value!.layout.settings.margins)
+
+/** 该侧按当前反算字号换算成 mm 的设定名义值（比例模式显示用） */
+function sideNominalMm(side: MarginSide): number {
+  const size = layout.value?.sizeMm ?? project.value!.layout.settings.baseSizeMm
+  return round1(side.mode === 'fixed' ? side.fixedMm : side.ratio * size)
+}
+
+function setMarginSide(key: 'left' | 'right', patch: Partial<MarginSide>): void {
+  const p = project.value
+  if (!p) return
+  const cur = p.layout.settings.margins[key]
+  p.layout.settings.margins[key] = { ...cur, ...patch }
+}
+
+function setPriority(side: PrioritySide): void {
+  const p = project.value
+  if (p) p.layout.settings.margins.prioritySide = side
+}
+
+/**
+ * 留边/字号相关界线变化后，逐字微调也要跟着新界线刷新：
+ * 未手动改过的字，其跟随字距按新字号重算（上下偏移是用户显式值，不重置）。
+ */
+function resyncFollowTracks(): void {
+  const p = project.value
+  if (!p) return
+  const size = layout.value?.sizeMm ?? p.layout.settings.baseSizeMm
+  for (const it of p.layout.items) {
+    if (!it.trackTouched) it.trackMm = round1(p.layout.settings.trackRatio * size)
+  }
+}
+
+// 留边设置、字号、字距比例一变，跟随默认的逐字字距立即按新界线刷新
+watch(
+  () => [
+    JSON.stringify(marginCfg.value),
+    project.value?.layout.settings.baseSizeMm,
+    project.value?.layout.settings.trackRatio,
+    session.autoFit.value
+  ],
+  () => resyncFollowTracks()
+)
+watch(
+  () => layout.value?.sizeMm,
+  () => resyncFollowTracks()
+)
 
 const activeGlyph = computed(() => {
   const l = layout.value
@@ -259,8 +331,64 @@ function areaM2(w: number, h: number): string {
             <div class="ctl"><input type="number" v-model.number="project.layout.settings.strokeLimitMm" min="1" step="1" /></div>
           </div>
           <div class="field">
-            <label>自动字号预留留边比例</label>
-            <div class="ctl"><input type="number" v-model.number="project.layout.settings.marginRatio" min="0" max="0.4" step="0.01" /></div>
+            <label>自动字号留边（左右分开）</label>
+            <div class="ctl" style="align-items: flex-start; flex-direction: column; gap: 6px; flex: 1">
+              <div class="row" style="gap: 8px; width: 100%">
+                <span class="muted" style="min-width: 34px">先保</span>
+                <label class="muted"><input type="radio" :checked="marginCfg.prioritySide === 'left'" @change="setPriority('left')" /> 左侧（立柱侧）</label>
+                <label class="muted"><input type="radio" :checked="marginCfg.prioritySide === 'right'" @change="setPriority('right')" /> 右侧（卷帘门侧）</label>
+                <span class="muted">宽度不够先压另一侧</span>
+              </div>
+              <table class="margin-table">
+                <thead>
+                  <tr><th></th><th>方式</th><th class="num">比例（×字号）</th><th class="num">固定 mm</th><th class="num">下限 mm</th><th class="num">设定→mm</th></tr>
+                </thead>
+                <tbody>
+                  <tr :class="{ prio: marginCfg.prioritySide === 'left' }">
+                    <td>左留边<b v-if="marginCfg.prioritySide === 'left'" class="good">（先保）</b></td>
+                    <td>
+                      <select :value="marginCfg.left.mode" @change="setMarginSide('left', { mode: ($event.target as HTMLSelectElement).value as MarginSide['mode'] })">
+                        <option value="ratio">字号比例</option>
+                        <option value="fixed">固定 mm</option>
+                      </select>
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.left.ratio" step="0.01" min="0" max="0.9" :disabled="marginCfg.left.mode === 'fixed'" @input="setMarginSide('left', { ratio: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.left.fixedMm" step="5" min="0" :disabled="marginCfg.left.mode === 'ratio'" @input="setMarginSide('left', { fixedMm: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.left.minMm" step="5" min="0" @input="setMarginSide('left', { minMm: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">{{ sideNominalMm(marginCfg.left) }}</td>
+                  </tr>
+                  <tr :class="{ prio: marginCfg.prioritySide === 'right' }">
+                    <td>右留边<b v-if="marginCfg.prioritySide === 'right'" class="good">（先保）</b></td>
+                    <td>
+                      <select :value="marginCfg.right.mode" @change="setMarginSide('right', { mode: ($event.target as HTMLSelectElement).value as MarginSide['mode'] })">
+                        <option value="ratio">字号比例</option>
+                        <option value="fixed">固定 mm</option>
+                      </select>
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.right.ratio" step="0.01" min="0" max="0.9" :disabled="marginCfg.right.mode === 'fixed'" @input="setMarginSide('right', { ratio: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.right.fixedMm" step="5" min="0" :disabled="marginCfg.right.mode === 'ratio'" @input="setMarginSide('right', { fixedMm: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">
+                      <input type="number" :value="marginCfg.right.minMm" step="5" min="0" @input="setMarginSide('right', { minMm: Number(($event.target as HTMLInputElement).value) })" />
+                    </td>
+                    <td class="num">{{ sideNominalMm(marginCfg.right) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <span class="muted">
+                每侧可「字号比例」（留边随字号缩放）或「固定 mm」；{{ marginModeLabel(marginCfg.left.mode) }}/{{ marginModeLabel(marginCfg.right.mode) }}。
+                比例口径 = 比例 × 字号，不再按安装区宽。
+              </span>
+            </div>
           </div>
 
           <div class="row" style="margin-top: 8px">
@@ -299,15 +427,28 @@ function areaM2(w: number, h: number): string {
             <div class="card">
               <header><h2>排版结果</h2></header>
               <div class="metrics">
-                <span class="k">字号</span><span class="v">{{ layout.sizeMm }} mm</span>
-                <span class="k">占宽 / 安装区宽</span>
-                <span class="v" :class="{ bad: layout.overflowX }">{{ layout.occupiedW }} / {{ layout.inner.w }} mm</span>
+                <span class="k">字号（反算）</span>
+                <span class="v">{{ layout.sizeMm }} mm <span class="muted" v-if="layout.marginFit.shrunkSize">（已整体缩字号）</span></span>
+                <span class="k">占宽 / 内容区宽</span>
+                <span class="v" :class="{ bad: layout.overflowX }">{{ layout.occupiedW }} / {{ layout.contentBox.w }} mm</span>
+                <span class="k">安装区宽</span>
+                <span class="v">{{ layout.inner.w }} mm</span>
+                <span class="k">左留边 设定 → 实际</span>
+                <span class="v" :class="{ bad: layout.marginFit.atLimitLeft }">
+                  {{ layout.marginFit.nominalLeft }} → {{ layout.marginFit.reservedLeft }} mm
+                  <b v-if="layout.marginFit.atLimitLeft" class="bad">（已压到下限 {{ project.layout.settings.margins.left.minMm }}mm）</b>
+                </span>
+                <span class="k">右留边 设定 → 实际</span>
+                <span class="v" :class="{ bad: layout.marginFit.atLimitRight }">
+                  {{ layout.marginFit.nominalRight }} → {{ layout.marginFit.reservedRight }} mm
+                  <b v-if="layout.marginFit.atLimitRight" class="bad">（已压到下限 {{ project.layout.settings.margins.right.minMm }}mm）</b>
+                </span>
+                <span class="k">左右留边差</span>
+                <span class="v" :class="{ good: layout.margins.symmetric }">{{ layout.margins.deltaX }} mm {{ layout.margins.symmetric ? '（对称）' : '（不对称，按分侧设定）' }}</span>
+                <span class="k">让位顺序</span>
+                <span class="v" :class="{ bad: layout.marginFit.yieldedSide || layout.marginFit.shrunkSize }">{{ layout.marginFit.note }}</span>
                 <span class="k">占高 / 安装区高</span>
                 <span class="v" :class="{ bad: layout.overflowY }">{{ layout.occupiedH }} / {{ layout.inner.h }} mm</span>
-                <span class="k">左留边 / 右留边</span>
-                <span class="v" :class="{ bad: !layout.margins.symmetric }">{{ layout.margins.left }} / {{ layout.margins.right }} mm</span>
-                <span class="k">左右留边差</span>
-                <span class="v" :class="{ good: layout.margins.symmetric }">{{ layout.margins.deltaX }} mm {{ layout.margins.symmetric ? '（对称）' : '（不对称）' }}</span>
                 <span class="k">上留边 / 下留边</span><span class="v">{{ layout.margins.top }} / {{ layout.margins.bottom }} mm</span>
                 <span class="k">视觉间距极差</span>
                 <span class="v" :class="{ bad: layout.gapSpread > 0.5 }">{{ layout.gapSpread }} mm</span>
@@ -317,15 +458,18 @@ function areaM2(w: number, h: number): string {
                 </template>
                 <span class="k">LED 布点长度</span><span class="v">{{ layout.ledLengthMm }} mm</span>
               </div>
+              <div v-if="layout.marginFit.yieldedSide || layout.marginFit.atLimitLeft || layout.marginFit.atLimitRight" class="banner warn" style="margin-top: 10px">
+                {{ layout.marginFit.note }}。实际留边已不等于设定值，请以「实际」为准。
+              </div>
               <div v-if="layout.overflowX || layout.overflowY" class="banner warn" style="margin-top: 10px">
-                超出安装区：宽 +{{ layout.overflowXMm }}mm / 高 +{{ layout.overflowYMm }}mm。
+                超出内容区/安装区：宽 +{{ layout.overflowXMm }}mm / 高 +{{ layout.overflowYMm }}mm。
                 <template v-if="layout.suggestedSizeMm !== null">
                   建议字号 <b>{{ layout.suggestedSizeMm }}mm</b>
                   <button class="primary" style="margin-left: 8px" @click="applySuggested">采用建议字号</button>
                 </template>
               </div>
               <ul class="notes" v-if="layout.warnings.length" style="margin-top: 8px">
-                <li v-for="(w, i) in layout.warnings.slice(0, 6)" :key="i">{{ w }}</li>
+                <li v-for="(w, i) in layout.warnings.slice(0, 8)" :key="i">{{ w }}</li>
               </ul>
             </div>
 
@@ -390,23 +534,15 @@ function areaM2(w: number, h: number): string {
                 <div class="ctl">
                   <input
                     type="number"
-                    v-model.number="project.layout.items[active].trackMm"
+                    :value="activeTrackValue()"
                     step="1"
-                    @input="project.layout.items[active].trackTouched = true"
+                    @input="setActiveTrack(Number(($event.target as HTMLInputElement).value))"
                   />
-                  <button @click="project.layout.items[active].trackMm = round1(project.layout.items[active].trackMm - 5)">
-                    −5
-                  </button>
-                  <button @click="project.layout.items[active].trackMm = round1(project.layout.items[active].trackMm - 1)">
-                    −1
-                  </button>
-                  <button @click="project.layout.items[active].trackMm = round1(project.layout.items[active].trackMm + 1)">
-                    +1
-                  </button>
-                  <button @click="project.layout.items[active].trackMm = round1(project.layout.items[active].trackMm + 5)">
-                    +5
-                  </button>
-                  <span class="muted" v-if="!project.layout.items[active].trackTouched">跟随默认（改动后独立）</span>
+                  <button @click="nudgeActiveTrack(-5)">−5</button>
+                  <button @click="nudgeActiveTrack(-1)">−1</button>
+                  <button @click="nudgeActiveTrack(1)">+1</button>
+                  <button @click="nudgeActiveTrack(5)">+5</button>
+                  <span class="muted" v-if="!project.layout.items[active].trackTouched">跟随默认（字号/留边变会自动刷新，改动后独立）</span>
                 </div>
               </div>
               <div class="field">

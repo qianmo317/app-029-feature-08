@@ -5,7 +5,7 @@
 
 import materialsData from '../data/materials.json'
 import type { Preset } from './materials'
-import { defaultProject } from './layout'
+import { defaultProject, normalizeSettings } from './layout'
 import type { Project } from './types'
 
 const KEY_PROJECTS = 'app029.projects.v1'
@@ -36,9 +36,18 @@ function writeJson(key: string, value: unknown): void {
   }
 }
 
+/**
+ * 兼容旧项目：存过的项目缺左右分开设的 margins 字段时，
+ * 打开即按「两边同宽的字号比例」补上（沿用旧 marginRatio 的比例值），之后正常保存。
+ */
+function migrateProject(p: Project): Project {
+  if (p?.layout?.settings) normalizeSettings(p.layout.settings)
+  return p
+}
+
 export function listProjects(): Project[] {
   const list = readJson<Project[]>(KEY_PROJECTS, [])
-  return list.sort((a, b) => b.updatedAt - a.updatedAt)
+  return list.map(migrateProject).sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 export function getProject(id: string): Project | null {
