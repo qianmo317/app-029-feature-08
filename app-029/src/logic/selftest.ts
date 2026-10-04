@@ -6,7 +6,7 @@
 import testchars from '../data/testchars.json'
 import { computeLed } from './led'
 import { clearGeometryCache, ensureFont, findFont, getGlyphGeom } from './fontLoader'
-import { computeLayout, defaultProject, textToItems, type LayoutResult } from './layout'
+import { computeLayout, defaultProject, normalizeLayoutSettings, textToItems, type LayoutResult } from './layout'
 import { assertBomSum, buildBom, compareMaterials, defaultPreset, type Preset } from './materials'
 import { nestPieces, type Piece } from './nesting'
 import { runBlockCount, type BlockCountResult } from './testRunner'
@@ -131,6 +131,86 @@ export async function runAcceptance(preset: Preset = defaultPreset): Promise<Acc
       pass: passMargin && passSuggest && over.overflowX,
       detail: passMargin && passSuggest ? '通过' : '未通过',
       evidence: [...ev, ...ev2]
+    })
+  }
+
+  // ---------- 1b. 左右留边分开：先保一边、先压另一边、再缩字号 ----------
+  {
+    const fixed = (fixedMm: number, minMm: number) => ({ mode: 'fixed' as const, fixedMm, minMm, ratio: 0 })
+    const mk = (id: string): Project => {
+      const p = makeProject(id, '广告招牌制作', 450)
+      p.layout.settings.margins = {
+        left: fixed(300, 150),
+        right: fixed(300, 0),
+        keepSide: 'left'
+      }
+      return p
+    }
+
+    // 情形一：压非保侧（右）即可塞下，保侧（左）一分不让，字号不变 → stage 2
+    const pA = mk('acc11a')
+    const a = computeLayout(pA.layout, { autoSize: true })
+    const aPass =
+      a.fit?.stage === 2 &&
+      a.fit.yieldedSide === 'right' &&
+      Math.abs(a.sizeMm - 450) <= 0.1 &&
+      Math.abs(a.margins.left - 300) <= 1 &&
+      a.margins.right < 300 - 0.6 &&
+      a.margins.leftSide.compressed === false &&
+      a.margins.rightSide.compressed === true &&
+      !a.overflowX
+
+    // 情形二：非保侧压到下限仍不够 → stage 3 缩字号；右留边钉在下限 0，字号 < 600
+    const pB = mk('acc11b')
+    pB.layout.settings.margins.right.minMm = 0
+    pB.layout.settings.baseSizeMm = 600
+    pB.layout.items = textToItems('广告招牌制作', [], pB.layout.settings, 600)
+    const b = computeLayout(pB.layout, { autoSize: true })
+    const bPass =
+      b.fit?.stage === 3 &&
+      b.fit.yieldedSide === 'right' &&
+      b.fit.yieldedAtLimit === true &&
+      b.sizeMm < 600 &&
+      Math.abs(b.margins.right - 0) <= 1 &&
+      b.margins.left >= 150 - 1 &&
+      !b.overflowX
+
+    // 情形三：左留边触下限提示必须出现（不能让人以为还按 300mm 固定边在走）
+    const pC = mk('acc11c')
+    pC.layout.settings.baseSizeMm = 600
+    pC.layout.settings.margins.left = fixed(200, 100)
+    pC.layout.settings.margins.right = fixed(50, 50)
+    pC.layout.settings.margins.keepSide = 'right'
+    pC.layout.items = textToItems('广告招牌制作', [], pC.layout.settings, 600)
+    const c = computeLayout(pC.layout, { autoSize: true })
+    const cPass = c.fit?.stage === 3 && c.fit.yieldedSide === 'left' && c.margins.leftSide.atLimit
+    const cWarn = c.warnings.some((w) => w.includes('下限'))
+
+    // 情形四：老项目缺 margins 字段 → 打开时按两边同宽的比例接着用
+    const legacy = makeProject('acc11d', '广告招牌制作', 300)
+    const legacySettings = legacy.layout.settings as unknown as Record<string, unknown>
+    delete legacySettings.margins
+    legacySettings.marginRatio = 0.04
+    normalizeLayoutSettings(legacy.layout.settings)
+    const migOk =
+      legacy.layout.settings.margins.left.mode === 'ratio' &&
+      legacy.layout.settings.margins.right.mode === 'ratio' &&
+      legacy.layout.settings.margins.left.ratio === 0.04 &&
+      legacy.layout.settings.margins.right.ratio === 0.04 &&
+      legacy.layout.settings.margins.keepSide === 'left'
+    const legacyLay = computeLayout(legacy.layout, { autoSize: true })
+
+    checks.push({
+      id: 'A11',
+      title: '左右留边分开：可比例/固定毫米、指定先保边；不够先压另一边到下限，再整体缩字号；触限有提示；老项目按同宽比例迁移',
+      pass: !!(aPass && bPass && cPass && cWarn && migOk),
+      detail: `情形一 stage=${a.fit?.stage}，情形二 stage=${b.fit?.stage}，情形三 stage=${c.fit?.stage} 触限=${cWarn}，迁移=${migOk}`,
+      evidence: [
+        `情形一（压右即可）：${a.fit?.note}；字号 ${a.sizeMm}mm，左留边 ${a.margins.left}/300mm（保侧未让），右留边 ${a.margins.right}/300mm，占宽 ${a.occupiedW}mm，带宽 ${r1(a.band.w)}`,
+        `情形二（压到下限仍不够）：${b.fit?.note}；字号 ${b.sizeMm}mm，左留边 ${b.margins.left}mm（≥下限 150），右留边 ${b.margins.right}mm（钉在下限 0），占宽 ${b.occupiedW}mm`,
+        `情形三（触下限提示）：字号 ${c.sizeMm}mm；相关警告：${c.warnings.filter((w) => w.includes('下限')).join('；') || '（无）'}`,
+        `情形四（老项目迁移）：marginRatio=0.04 → 左右各 ratio=0.04 同宽，keepSide=left；迁移后自动字号 ${legacyLay.sizeMm}mm，左/右留边 ${legacyLay.margins.left}/${legacyLay.margins.right}mm`
+      ]
     })
   }
 

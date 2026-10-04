@@ -8,7 +8,7 @@
 import type { BomResult, CompareRow } from './materials'
 import { yuan } from './materials'
 import type { LayoutResult } from './layout'
-import { alignLabel, mountingLabel } from './layout'
+import { alignLabel, mountingLabel, round1 } from './layout'
 import type { Project } from './types'
 
 export function bomGroupLabel(kind: string): string {
@@ -61,7 +61,12 @@ export function buildQuoteDoc(project: Project, layout: LayoutResult, bom: BomRe
       project.layout.panel.mounting
     )}）`,
     fontText: `${fontLabel}　字重 ${project.layout.settings.weight}　字号 ${layout.sizeMm}mm（${alignLabel(project.layout.settings.align)}）`,
-    layoutText: `占宽 ${layout.occupiedW}mm × 占高 ${layout.occupiedH}mm；左右留边 ${layout.margins.left}/${layout.margins.right}mm；视觉间距极差 ${layout.gapSpread}mm`,
+    layoutText:
+      `占宽 ${layout.occupiedW}mm（排版带宽 ${round1(layout.band.w)}mm）× 占高 ${layout.occupiedH}mm；` +
+      `左留边 ${layout.margins.left}/${layout.margins.leftSide.desired}mm（下限 ${layout.margins.leftSide.minMm}mm）、` +
+      `右留边 ${layout.margins.right}/${layout.margins.rightSide.desired}mm（下限 ${layout.margins.rightSide.minMm}mm），实际/设定；` +
+      `视觉间距极差 ${layout.gapSpread}mm` +
+      (layout.fit && layout.fit.stage > 1 ? `；让位说明：${layout.fit.note.replace(/^自动字号：/, '')}` : ''),
     rows,
     total: yuan(bom.totalCents),
     notes: [

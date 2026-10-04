@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import PanelPreview from '../components/PanelPreview.vue'
 import { findFont, fontState, listFonts } from '../logic/fontLoader'
-import { round1, textToItems } from '../logic/layout'
+import { round1, sideDesiredMm, textToItems } from '../logic/layout'
 import { getProject } from '../logic/store'
 import { loadPrefs, savePrefs } from '../logic/store'
 import { useSession } from '../logic/useSession'
@@ -148,6 +148,19 @@ const gapList = computed(() => {
 const nightPref = ref(loadPrefs().nightPreview)
 watch(nightPref, (v) => savePrefs({ nightPreview: v }))
 
+const leftDesiredMm = computed(() => {
+  const l = layout.value
+  const p = project.value
+  if (!l || !p) return 0
+  return sideDesiredMm(p.layout.settings.margins.left, l.sizeMm)
+})
+const rightDesiredMm = computed(() => {
+  const l = layout.value
+  const p = project.value
+  if (!l || !p) return 0
+  return sideDesiredMm(p.layout.settings.margins.right, l.sizeMm)
+})
+
 const previewKey = computed(() => `${layout.value?.sizeMm}-${session.fontTick.value}`)
 
 function areaM2(w: number, h: number): string {
@@ -259,9 +272,80 @@ function areaM2(w: number, h: number): string {
             <div class="ctl"><input type="number" v-model.number="project.layout.settings.strokeLimitMm" min="1" step="1" /></div>
           </div>
           <div class="field">
-            <label>自动字号预留留边比例</label>
-            <div class="ctl"><input type="number" v-model.number="project.layout.settings.marginRatio" min="0" max="0.4" step="0.01" /></div>
+            <label>左右留边（分开设置）</label>
+            <div class="ctl"></div>
           </div>
+          <div class="margin-cfg">
+            <div class="margin-side" :class="{ keep: project.layout.settings.margins.keepSide === 'left' }">
+              <div class="row" style="gap: 6px">
+                <b>左侧</b>（立柱侧）
+                <label class="muted"><input type="radio" value="left" v-model="project.layout.settings.margins.keepSide" /> 先保这边</label>
+              </div>
+              <div class="row" style="gap: 6px; margin-top: 4px">
+                <select v-model="project.layout.settings.margins.left.mode">
+                  <option value="ratio">按字号比例</option>
+                  <option value="fixed">固定毫米</option>
+                </select>
+                <input
+                  v-if="project.layout.settings.margins.left.mode === 'ratio'"
+                  type="number"
+                  v-model.number="project.layout.settings.margins.left.ratio"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <input
+                  v-else
+                  type="number"
+                  v-model.number="project.layout.settings.margins.left.fixedMm"
+                  min="0"
+                  step="5"
+                />
+                <span class="muted">{{ leftDesiredMm.toFixed(1) }}mm</span>
+              </div>
+              <div class="row" style="gap: 6px; margin-top: 4px">
+                <span class="muted">让位下限</span>
+                <input type="number" v-model.number="project.layout.settings.margins.left.minMm" min="0" step="5" />
+                <span class="muted">mm</span>
+              </div>
+            </div>
+            <div class="margin-side" :class="{ keep: project.layout.settings.margins.keepSide === 'right' }">
+              <div class="row" style="gap: 6px">
+                <b>右侧</b>（卷帘门侧）
+                <label class="muted"><input type="radio" value="right" v-model="project.layout.settings.margins.keepSide" /> 先保这边</label>
+              </div>
+              <div class="row" style="gap: 6px; margin-top: 4px">
+                <select v-model="project.layout.settings.margins.right.mode">
+                  <option value="ratio">按字号比例</option>
+                  <option value="fixed">固定毫米</option>
+                </select>
+                <input
+                  v-if="project.layout.settings.margins.right.mode === 'ratio'"
+                  type="number"
+                  v-model.number="project.layout.settings.margins.right.ratio"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+                <input
+                  v-else
+                  type="number"
+                  v-model.number="project.layout.settings.margins.right.fixedMm"
+                  min="0"
+                  step="5"
+                />
+                <span class="muted">{{ rightDesiredMm.toFixed(1) }}mm</span>
+              </div>
+              <div class="row" style="gap: 6px; margin-top: 4px">
+                <span class="muted">让位下限</span>
+                <input type="number" v-model.number="project.layout.settings.margins.right.minMm" min="0" step="5" />
+                <span class="muted">mm</span>
+              </div>
+            </div>
+          </div>
+          <p class="muted" style="margin: 4px 0 0">
+            宽度不够时：先压「非保侧」留边到其下限，还不够才整体缩字号；保的一侧尽量不动。
+          </p>
 
           <div class="row" style="margin-top: 8px">
             <label class="muted"><input type="checkbox" v-model="overlays.blocks" /> 笔画块着色</label>
@@ -299,15 +383,29 @@ function areaM2(w: number, h: number): string {
             <div class="card">
               <header><h2>排版结果</h2></header>
               <div class="metrics">
-                <span class="k">字号</span><span class="v">{{ layout.sizeMm }} mm</span>
-                <span class="k">占宽 / 安装区宽</span>
-                <span class="v" :class="{ bad: layout.overflowX }">{{ layout.occupiedW }} / {{ layout.inner.w }} mm</span>
+                <span class="k">字号（反算）</span><span class="v">{{ layout.sizeMm }} mm</span>
+                <span class="k">占宽 / 排版带宽 / 安装区宽</span>
+                <span class="v" :class="{ bad: layout.overflowX }">
+                  {{ layout.occupiedW }} / {{ layout.band.w.toFixed(1) }} / {{ layout.inner.w }} mm
+                </span>
                 <span class="k">占高 / 安装区高</span>
                 <span class="v" :class="{ bad: layout.overflowY }">{{ layout.occupiedH }} / {{ layout.inner.h }} mm</span>
-                <span class="k">左留边 / 右留边</span>
-                <span class="v" :class="{ bad: !layout.margins.symmetric }">{{ layout.margins.left }} / {{ layout.margins.right }} mm</span>
+                <span class="k">左留边（实际 / 设定 / 下限）</span>
+                <span class="v" :class="{ bad: layout.margins.leftSide.atLimit, warn: layout.margins.leftSide.compressed }">
+                  {{ layout.margins.left }} / {{ layout.margins.leftSide.desired }} / {{ layout.margins.leftSide.minMm }} mm
+                  <span v-if="layout.margins.leftSide.atLimit" class="tag">已压到下限</span>
+                  <span v-else-if="layout.margins.leftSide.compressed" class="tag">让位中</span>
+                </span>
+                <span class="k">右留边（实际 / 设定 / 下限）</span>
+                <span class="v" :class="{ bad: layout.margins.rightSide.atLimit, warn: layout.margins.rightSide.compressed }">
+                  {{ layout.margins.right }} / {{ layout.margins.rightSide.desired }} / {{ layout.margins.rightSide.minMm }} mm
+                  <span v-if="layout.margins.rightSide.atLimit" class="tag">已压到下限</span>
+                  <span v-else-if="layout.margins.rightSide.compressed" class="tag">让位中</span>
+                </span>
                 <span class="k">左右留边差</span>
-                <span class="v" :class="{ good: layout.margins.symmetric }">{{ layout.margins.deltaX }} mm {{ layout.margins.symmetric ? '（对称）' : '（不对称）' }}</span>
+                <span class="v">{{ layout.margins.deltaX }} mm {{ layout.margins.symmetric ? '（对称）' : '（不对称，按配置）' }}</span>
+                <span class="k">先保 / 先让</span>
+                <span class="v">{{ project.layout.settings.margins.keepSide === 'left' ? '左 / 右' : '右 / 左' }}</span>
                 <span class="k">上留边 / 下留边</span><span class="v">{{ layout.margins.top }} / {{ layout.margins.bottom }} mm</span>
                 <span class="k">视觉间距极差</span>
                 <span class="v" :class="{ bad: layout.gapSpread > 0.5 }">{{ layout.gapSpread }} mm</span>
@@ -317,11 +415,15 @@ function areaM2(w: number, h: number): string {
                 </template>
                 <span class="k">LED 布点长度</span><span class="v">{{ layout.ledLengthMm }} mm</span>
               </div>
+              <div v-if="layout.fit" class="banner" :class="layout.fit.stage === 1 ? 'ok' : 'warn'" style="margin-top: 10px">
+                {{ layout.fit.note }}
+              </div>
               <div v-if="layout.overflowX || layout.overflowY" class="banner warn" style="margin-top: 10px">
                 超出安装区：宽 +{{ layout.overflowXMm }}mm / 高 +{{ layout.overflowYMm }}mm。
                 <template v-if="layout.suggestedSizeMm !== null">
                   建议字号 <b>{{ layout.suggestedSizeMm }}mm</b>
                   <button class="primary" style="margin-left: 8px" @click="applySuggested">采用建议字号</button>
+                  <div v-if="layout.suggestedFit" style="margin-top: 4px">{{ layout.suggestedFit.note }}</div>
                 </template>
               </div>
               <ul class="notes" v-if="layout.warnings.length" style="margin-top: 8px">
